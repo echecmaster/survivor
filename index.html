@@ -3,73 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Survivor Z - Expert Edition</title>
+    <title>Survivor Z - Ultimate Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; touch-action: none; user-select: none; }
-        canvas { display: block; background-color: #2c3e50; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Orbitron', sans-serif; color: white; touch-action: none; user-select: none; }
+        canvas { display: block; }
+        
+        /* --- UI GENERAL --- */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(5,5,5,0.95); z-index: 10; transition: 0.3s; }
+        .hidden { display: none !important; }
+        button { cursor: pointer; font-family: 'Orbitron'; border: none; outline: none; transition: 0.2s; }
+        
+        h1 { color: #ff4757; font-size: 50px; text-shadow: 0 0 20px #ff4757; margin-bottom: 40px; text-align: center; }
+        h2 { color: #00f2fe; margin-bottom: 20px; }
+
+        /* --- MENU PRINCIPAL --- */
+        .menu-btn {
+            width: 300px; padding: 15px; margin: 10px; font-size: 20px; font-weight: bold;
+            background: transparent; border: 2px solid #00f2fe; color: #00f2fe;
+            clip-path: polygon(10% 0, 100% 0, 100% 80%, 90% 100%, 0 100%, 0 20%);
+        }
+        .menu-btn:hover { background: #00f2fe; color: #000; transform: scale(1.05); box-shadow: 0 0 20px #00f2fe; }
+        .menu-btn.quit { border-color: #ff4757; color: #ff4757; }
+
+        /* --- SHOP (CORRIGÉ) --- */
+        .char-grid { 
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; 
+            max-width: 90%; max-height: 60vh; overflow-y: auto; 
+            padding: 20px; /* Espace pour l'ombre */
+        }
+        .char-card {
+            width: 150px; background: #1a1a1a; border: 2px solid #444; padding: 15px; text-align: center;
+            border-radius: 10px; cursor: pointer; position: relative; transition: 0.3s;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .char-card:hover { transform: translateY(-5px); border-color: #fff; }
+        .char-card.selected { border-color: #2ed573; box-shadow: 0 0 20px rgba(46, 213, 115, 0.5); background: #222; }
+        .char-card.locked { opacity: 0.5; filter: grayscale(1); }
+        .char-icon { width: 60px; height: 60px; border-radius: 50%; margin-bottom: 10px; box-shadow: 0 0 10px currentColor; }
+        .price-tag { color: #f1c40f; font-size: 14px; margin-top: auto; font-weight: bold; }
+        .owned-tag { color: #2ed573; font-size: 12px; margin-top: auto; }
+
+        /* --- HUD JEU --- */
         #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
         #timer { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
-            font-size: 28px; font-weight: bold; background: rgba(0,0,0,0.8); 
-            padding: 5px 25px; border-radius: 20px; border: 2px solid #555;
+            font-size: 28px; font-weight: 900; background: rgba(0,0,0,0.8); 
+            padding: 5px 25px; border-radius: 10px; border: 2px solid #00f2fe;
+            color: #00f2fe; box-shadow: 0 0 15px #00f2fe;
         }
-        .flame-timer { color: #ff4757 !important; border-color: #ff4757 !important; text-shadow: 0 0 15px #ff4757; animation: shake 0.1s infinite; }
-        @keyframes shake { 0%{margin-left:-2px} 100%{margin-left:2px} }
-
-        #level-info { position: absolute; top: 20px; left: 20px; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
-        #lvl { font-size: 24px; font-weight: bold; color: #eccc68; text-shadow: 1px 1px 2px black; }
+        .red-alert { color: #ff4757 !important; border-color: #ff4757 !important; animation: shake 0.2s infinite; }
         
-        .inventory { display: flex; gap: 6px; }
-        .slot { 
-            width: 42px; height: 42px; background: rgba(0,0,0,0.6); 
-            border: 2px solid #444; border-radius: 8px; position: relative;
-            cursor: help; display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 14px;
+        #coin-hud {
+            position: absolute; top: 20px; right: 20px;
+            font-size: 24px; color: #f1c40f; font-weight: bold;
+            background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 30px;
+            border: 2px solid #f1c40f; text-shadow: 0 0 10px #f1c40f;
+            display: flex; align-items: center; gap: 10px;
         }
+
+        #inventory-hud {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; pointer-events: auto;
+        }
+        .slot-group { display: flex; gap: 5px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 8px; }
+        .slot {
+            width: 40px; height: 40px; background: #222; border: 2px solid #444;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; color: #fff; border-radius: 4px; position: relative;
+        }
+        .slot small { position: absolute; bottom: 0; right: 2px; font-size: 10px; color: #ccc; }
         .slot.weapon { border-color: #ff4757; }
         .slot.passive { border-color: #2ed573; }
+        .slot-label { position: absolute; top: -20px; left: 0; width: 100%; text-align: center; font-size: 12px; color: #aaa; text-transform: uppercase; }
 
-        #tooltip { 
-            position: absolute; background: rgba(0,0,0,0.95); border: 1px solid #ffa502; 
-            padding: 12px; border-radius: 8px; font-size: 13px; display: none; 
-            z-index: 200; width: 200px; pointer-events: none; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        .hud-bars { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60%; max-width: 500px; }
+        .bar { height: 10px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; border: 1px solid #333; margin-top: 8px; }
+        #hp-fill { background: linear-gradient(90deg, #ff416c, #ff4b2b); width: 100%; height: 100%; transition: width 0.2s; }
+        #xp-fill { background: linear-gradient(90deg, #00f2fe, #4facfe); width: 0%; height: 100%; transition: width 0.2s; }
+
+        #boss-warning {
+            position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+            color: #ff4757; font-size: 60px; font-weight: 900; text-shadow: 0 0 30px #ff4757;
+            display: none; animation: flash 0.5s infinite; text-align: center; width: 100%;
         }
-
-        .hud-bars { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 500px; }
-        .bar { height: 12px; background: #111; border-radius: 6px; overflow: hidden; border: 1px solid #444; margin-top: 5px; }
-        #hp-fill { background: linear-gradient(90deg, #ff4757, #ff6b81); width: 100%; height: 100%; transition: width 0.2s; }
-        #xp-fill { background: linear-gradient(90deg, #2ed573, #7bed9f); width: 0%; height: 100%; transition: width 0.2s; }
         
-        #modal, #start { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; z-index: 100; }
-        .cards { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; padding: 20px; }
-        .card { background: #2f3542; border: 3px solid #57606f; border-radius: 15px; padding: 15px; width: 170px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .card:hover { border-color: #ffa502; transform: scale(1.05); background: #3e4451; }
-        .btn-start { padding: 18px 50px; border-radius: 40px; border: none; background: #ff4757; color: white; font-size: 20px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 0 #b33939; }
-        .btn-start:active { transform: translateY(2px); box-shadow: 0 2px 0 #b33939; }
+        /* UPGRADE MODAL */
+        #modal-upgrade { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; z-index: 100; }
+        .cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .card { 
+            background: #111; border: 2px solid #444; border-radius: 15px; padding: 20px; 
+            width: 180px; text-align: center; cursor: pointer; transition: 0.3s;
+        }
+        .card:hover { border-color: #f1c40f; transform: translateY(-10px); background: #222; }
+
+        /* SETTINGS & GAMEOVER */
+        .settings-row { display: flex; justify-content: space-between; width: 400px; margin: 10px 0; align-items: center; background: #111; padding: 10px; border-radius: 5px; }
+        .key-btn { background: #333; color: white; padding: 5px 15px; border-radius: 4px; min-width: 40px; text-align: center; }
+        .key-btn.listening { background: #ff4757; animation: pulse 1s infinite; }
+        .stats-box { border: 1px solid #333; padding: 20px; margin: 20px; background: rgba(0,0,0,0.8); border-radius: 10px; }
+
+        @keyframes shake { 0%{transform:translateX(-52%)} 50%{transform:translateX(-48%)} 100%{transform:translateX(-50%)} }
+        @keyframes pulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }
+        @keyframes flash { 0%{opacity:1} 50%{opacity:0} 100%{opacity:1} }
     </style>
 </head>
 <body>
 
     <canvas id="canvas"></canvas>
-    <div id="tooltip"></div>
 
-    <div id="ui">
+    <div id="ui" class="hidden">
         <div id="timer">10:00</div>
-        
-        <div id="level-info">
-            <div id="lvl">NIVEAU 1</div>
-            <div class="inventory" id="weapon-slots">
-                <div class="slot weapon" onmouseover="showTip(event, 'w0')" onmouseout="hideTip()"></div>
-                <div class="slot weapon" onmouseover="showTip(event, 'w1')" onmouseout="hideTip()"></div>
-                <div class="slot weapon" onmouseover="showTip(event, 'w2')" onmouseout="hideTip()"></div>
-                <div class="slot weapon" onmouseover="showTip(event, 'w3')" onmouseout="hideTip()"></div>
+        <div id="coin-hud">💰 <span id="live-coins-display">0</span></div>
+        <div id="level-info" style="position:absolute; top:20px; left:20px;">
+            <div id="lvl" style="color:#f1c40f; font-size:24px;">NIVEAU 1</div>
+        </div>
+
+        <div id="inventory-hud">
+            <div style="position:relative">
+                <div class="slot-label" style="color:#ff4757">ATTAQUES</div>
+                <div class="slot-group" id="weapon-slots">
+                    <div class="slot weapon"></div><div class="slot weapon"></div><div class="slot weapon"></div><div class="slot weapon"></div>
+                </div>
             </div>
-            <div class="inventory" id="passive-slots">
-                <div class="slot passive" onmouseover="showTip(event, 'p0')" onmouseout="hideTip()"></div>
-                <div class="slot passive" onmouseover="showTip(event, 'p1')" onmouseout="hideTip()"></div>
-                <div class="slot passive" onmouseover="showTip(event, 'p2')" onmouseout="hideTip()"></div>
-                <div class="slot passive" onmouseover="showTip(event, 'p3')" onmouseout="hideTip()"></div>
+            <div style="position:relative">
+                <div class="slot-label" style="color:#2ed573">PASSIFS</div>
+                <div class="slot-group" id="passive-slots">
+                    <div class="slot passive"></div><div class="slot passive"></div><div class="slot passive"></div><div class="slot passive"></div>
+                </div>
             </div>
         </div>
 
@@ -77,18 +140,55 @@
             <div class="bar"><div id="hp-fill"></div></div>
             <div class="bar"><div id="xp-fill"></div></div>
         </div>
+        
+        <div id="boss-warning">⚠️ BOSS APPROACHING ⚠️</div>
     </div>
 
-    <div id="modal">
-        <h2 style="color:white; letter-spacing: 2px;">AMÉLIORATION DISPONIBLE</h2>
-        <div class="cards" id="choices"></div>
+    <div id="menu-screen" class="screen">
+        <h1>SURVIVOR Z</h1>
+        <button class="menu-btn" onclick="startGame()">JOUER</button>
+        <button class="menu-btn" onclick="showScreen('char-screen')">PERSONNAGE</button>
+        <button class="menu-btn" onclick="showScreen('settings-screen')">PARAMÈTRES</button>
+        <button class="menu-btn quit" onclick="location.reload()">QUITTER</button>
     </div>
 
-    <div id="start" style="display:flex">
-        <h1 style="color:#ff4757; font-size: 50px; margin-bottom: 10px;">SURVIVOR Z</h1>
-        <p style="color: #a4b0be; margin-bottom: 30px;">Z,Q,S,D pour bouger | Survis aux 10 minutes</p>
-        <button class="btn-start" onclick="initGame()">COMMENCER LA CHASSE</button>
+    <div id="char-screen" class="screen hidden">
+        <h2>CHOIX DE L'AVATAR</h2>
+        <div style="color:#f1c40f; font-size:24px; margin-bottom:10px;">Solde : 💰 <span id="total-coins">0</span></div>
+        <div class="char-grid" id="char-list">
+            </div>
+        <br>
+        <button class="menu-btn" onclick="showScreen('menu-screen')">RETOUR</button>
     </div>
+
+    <div id="settings-screen" class="screen hidden">
+        <h2>PARAMÈTRES</h2>
+        <div class="settings-row"><span>Volume Sonore</span><input type="range" min="0" max="100" value="50" oninput="setVolume(this.value)"></div>
+        <div class="settings-row"><span>Haut</span><div class="key-btn" id="key-z" onclick="remapKey('z')">Z</div></div>
+        <div class="settings-row"><span>Bas</span><div class="key-btn" id="key-s" onclick="remapKey('s')">S</div></div>
+        <div class="settings-row"><span>Gauche</span><div class="key-btn" id="key-q" onclick="remapKey('q')">Q</div></div>
+        <div class="settings-row"><span>Droite</span><div class="key-btn" id="key-d" onclick="remapKey('d')">D</div></div>
+        <br>
+        <button class="menu-btn" onclick="showScreen('menu-screen')">RETOUR</button>
+    </div>
+
+    <div id="modal-upgrade">
+        <h2 style="color:#f1c40f; letter-spacing: 4px;">LEVEL UP</h2>
+        <div class="cards" id="upgrade-choices"></div>
+    </div>
+
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color:red">MORT DU PILOTE</h1>
+        <div class="stats-box">
+            <p>Temps : <span id="end-time" style="color:#00f2fe"></span></p>
+            <p>Prime Survie : <span id="survival-coins" style="color:#f1c40f"></span></p>
+            <p>Butin : <span id="loot-coins" style="color:#f1c40f"></span></p>
+            <h3 style="border-top:1px solid #555; padding-top:10px;">TOTAL : <span id="total-gained" style="color:#2ed573"></span></h3>
+        </div>
+        <button class="menu-btn" onclick="location.reload()">MENU</button>
+    </div>
+
+    <audio id="bgm" loop><source src="1.mp3" type="audio/mpeg"></audio>
 
     <script>
         const canvas = document.getElementById('canvas');
@@ -96,57 +196,170 @@
         let W = window.innerWidth, H = window.innerHeight;
         canvas.width = W; canvas.height = H;
 
-        let player, enemies, gems, bullets, particles, strikes;
-        let gameActive = false, startTime, elapsedTime = 0, lastSpawn = 0;
-        const keys = { z:false, s:false, q:false, d:false };
+        // --- GESTION SAUVEGARDE & PERSOS ---
+        // On initialise d'abord les données pour éviter le bug d'affichage
+        let playerCoins = parseInt(localStorage.getItem('survivor_coins')) || 0;
+        let savedChars = JSON.parse(localStorage.getItem('survivor_chars'));
+        
+        // Si c'est la première fois ou si bug, on force le soldat vert (ID 0)
+        if (!savedChars || savedChars.length === 0) {
+            savedChars = [0];
+            localStorage.setItem('survivor_chars', JSON.stringify(savedChars));
+        }
+        
+        let selectedCharId = parseInt(localStorage.getItem('survivor_selected'));
+        if (isNaN(selectedCharId)) {
+            selectedCharId = 0;
+            localStorage.setItem('survivor_selected', 0);
+        }
 
+        const CHARACTERS = [
+            { id: 0, name: "Soldat Vert", color: "#2ecc71", weapon: "gun", cost: 0, desc: "Tir de Balles", owned: true },
+            { id: 1, name: "Lame Rouge", color: "#e74c3c", weapon: "boomerang", cost: 1000, desc: "Boomerang", owned: false },
+            { id: 2, name: "Gardien Bleu", color: "#3498db", weapon: "guardian", cost: 1500, desc: "Bouclier Rotatif", owned: false },
+            { id: 3, name: "Zone Jaune", color: "#f1c40f", weapon: "thunder", cost: 2000, desc: "Attaque de Zone", owned: false }
+        ];
+
+        // Mettre à jour l'état "owned" selon la sauvegarde
+        CHARACTERS.forEach(c => {
+            if (savedChars.includes(c.id)) c.owned = true;
+        });
+
+        // --- DEFINITION ARMES & PASSIFS ---
         const WEAPONS_DATA = {
-            kunai: { t: 'KUNAI', d: 'Tir auto rapide', col: '#f1c40f', sym: 'K' },
-            guardian: { t: 'GUARDIAN', d: 'Lames circulaires', col: '#ced6e0', sym: 'G' },
-            thunder: { t: 'FOUDRE', d: 'Dégâts de zone aléatoires', col: '#48dbfb', sym: 'F' },
-            boomerang: { t: 'BOOMERANG', d: 'Traverse et revient', col: '#54a0ff', sym: 'B' },
-            saw: { t: 'SCIE', d: 'Dégâts de zone proches', col: '#95afc0', sym: 'S' }
+            gun: { t: 'FUSIL', d: 'Tir rapide', col: '#2ecc71', icon: '🔫' },
+            guardian: { t: 'PIQUES', d: 'Bouclier', col: '#3498db', icon: '🛡️' },
+            thunder: { t: 'FOUDRE', d: 'Explosions', col: '#f1c40f', icon: '⚡' },
+            boomerang: { t: 'LAME', d: 'Boomerang', col: '#e74c3c', icon: '🪃' }
         };
-
         const PASSIVES_DATA = {
-            force: { t: 'FORCE', d: '+20% de puissance', col: '#ff4757', sym: 'Atk' },
-            vitesse: { t: 'VITESSE', d: '+15% move speed', col: '#ffa502', sym: 'Spd' },
-            portee: { t: 'ZONE', d: '+20% taille d\'effet', col: '#70a1ff', sym: 'Zon' },
-            recharge: { t: 'RECHARGE', d: '-15% temps de recharge', col: '#eccc68', sym: 'Cdr' },
-            quantite: { t: 'QUANTITÉ', d: '+1 projectile par tir', col: '#2ed573', sym: 'Qte' },
-            sagesse: { t: 'SAGESSE', d: '+15% XP par gemme', col: '#d2dae2', sym: 'Xp' }
+            force: { t: 'FORCE', d: '+Dégâts', col: '#ff4757', icon: '💪' },
+            vitesse: { t: 'VITESSE', d: '+Course', col: '#ffa502', icon: '👟' },
+            recharge: { t: 'CADENCE', d: '-CoolDown', col: '#eccc68', icon: '⏱️' },
+            quantite: { t: 'MULTI', d: '+Projectile', col: '#2ed573', icon: '🍒' }
         };
 
+        // VARIABLES JEU
+        let player, enemies, gems, bullets, strikes, particles, numbers, boosts;
+        let gameActive = false, startTime, elapsedTime = 0, lastSpawn = 0, lastCoinTick = 0;
+        let camera = { x: 0, y: 0, shake: 0, zoom: 1 };
+        let sessionCoins = 0;
+        let keyMap = { up: 'z', down: 's', left: 'q', right: 'd' };
+        let activeKeys = { up: false, down: false, left: false, right: false };
+        let bossSpawnedStages = [];
+
+        // --- FONCTIONS MENU ---
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+            if(id === 'char-screen') renderShop();
+        }
+
+        function renderShop() {
+            const list = document.getElementById('char-list');
+            list.innerHTML = ''; // Nettoyer
+            document.getElementById('total-coins').innerText = playerCoins;
+            
+            CHARACTERS.forEach(char => {
+                let div = document.createElement('div');
+                let isSelected = (selectedCharId === char.id);
+                let cssClass = `char-card ${char.owned ? '' : 'locked'} ${isSelected ? 'selected' : ''}`;
+                
+                div.className = cssClass;
+                div.onclick = () => selectOrBuyChar(char);
+                
+                let html = `<div class="char-icon" style="background:${char.color}"></div>`;
+                html += `<strong>${char.name}</strong>`;
+                html += `<small style="color:#ccc; margin:5px 0;">${char.desc}</small>`;
+                
+                if (char.owned) {
+                    if (isSelected) html += `<div class="owned-tag">SÉLECTIONNÉ</div>`;
+                    else html += `<div class="owned-tag">POSSÉDÉ</div>`;
+                } else {
+                    html += `<div class="price-tag">${char.cost} 💰</div>`;
+                }
+                
+                div.innerHTML = html;
+                list.appendChild(div);
+            });
+        }
+
+        function selectOrBuyChar(char) {
+            if (char.owned) {
+                selectedCharId = char.id;
+                localStorage.setItem('survivor_selected', selectedCharId);
+                renderShop(); // Rafraichir visuel
+            } else {
+                if (playerCoins >= char.cost) {
+                    playerCoins -= char.cost;
+                    char.owned = true;
+                    savedChars.push(char.id);
+                    // Sauvegarde
+                    localStorage.setItem('survivor_coins', playerCoins);
+                    localStorage.setItem('survivor_chars', JSON.stringify(savedChars));
+                    // Auto-select
+                    selectedCharId = char.id;
+                    localStorage.setItem('survivor_selected', selectedCharId);
+                    renderShop();
+                } else {
+                    alert("Pas assez d'argent ! Jouez pour en gagner.");
+                }
+            }
+        }
+
+        function setVolume(val) { try{document.getElementById('bgm').volume = val / 100;}catch(e){} }
+        
+        function remapKey(actionKey) {
+            let btn = document.getElementById('key-' + actionKey);
+            btn.innerText = "..."; btn.classList.add('listening');
+            let handler = (e) => {
+                let mapKey = actionKey === 'z' ? 'up' : actionKey === 's' ? 'down' : actionKey === 'q' ? 'left' : 'right';
+                keyMap[mapKey] = e.key.toLowerCase();
+                btn.innerText = e.key.toUpperCase(); btn.classList.remove('listening');
+                window.removeEventListener('keydown', handler);
+            };
+            window.addEventListener('keydown', handler);
+        }
+
+        // --- CLASSES JEU ---
         class Player {
-            constructor() {
-                this.x = W/2; this.y = H/2; this.hp = 100; this.maxHp = 100;
-                this.xp = 0; this.xpReq = 50; this.lvl = 1; this.speed = 3.5;
-                this.weapons = { kunai: 1 };
+            constructor(charData) {
+                this.x = 0; this.y = 0; 
+                this.hp = 100; this.maxHp = 100;
+                this.xp = 0; this.xpReq = 50; this.lvl = 1;
+                this.baseSpeed = 4;
+                this.color = charData.color;
+                
+                this.weapons = {}; 
+                // Initialise l'arme du perso
+                this.weapons[charData.weapon] = 1;
+                
                 this.passives = {};
-                this.timers = { kunai: 0, thunder: 0, boomerang: 0, saw: 0 };
+                this.timers = { gun:0, thunder:0, boomerang:0 };
                 this.rot = 0;
+                this.speedBoostTimer = 0;
+                this.magnetTimer = 0;
             }
             getStat(type) {
                 let v = this.passives[type] || 0;
-                if(type === 'force') return 1 + (v * 0.2);
-                if(type === 'recharge') return 1 - (v * 0.15);
-                if(type === 'quantite') return v;
-                if(type === 'portee') return 1 + (v * 0.2);
-                if(type === 'sagesse') return 1 + (v * 0.15); // Equilibré à 15%
+                if(type==='force') return 1+(v*0.2); 
+                if(type==='recharge') return 1-(v*0.15); 
+                if(type==='quantite') return v; 
                 return 1;
             }
             update() {
-                let mx = 0, my = 0;
-                if(keys.z) my -= 1; if(keys.s) my += 1;
-                if(keys.q) mx -= 1; if(keys.d) mx += 1;
-                let ms = this.speed * (1 + (this.passives.vitesse || 0) * 0.15);
-                if(mx !== 0 || my !== 0) {
+                let mx=0, my=0;
+                if(activeKeys.up) my-=1; if(activeKeys.down) my+=1;
+                if(activeKeys.left) mx-=1; if(activeKeys.right) mx+=1;
+                
+                let spd = this.baseSpeed * (1 + (this.passives.vitesse||0)*0.1);
+                if(Date.now() < this.speedBoostTimer) spd *= 2; 
+
+                if(mx!==0 || my!==0) {
                     let d = Math.sqrt(mx*mx+my*my);
-                    this.x += (mx/d)*ms; this.y += (my/d)*ms;
+                    this.x += (mx/d)*spd; this.y += (my/d)*spd;
                 }
-                this.x = Math.max(20, Math.min(W-20, this.x));
-                this.y = Math.max(20, Math.min(H-20, this.y));
-                this.rot += 0.08;
+                this.rot += 0.1;
                 this.fire();
             }
             fire() {
@@ -154,212 +367,362 @@
                 let cd = this.getStat('recharge');
                 let qte = this.getStat('quantite');
                 let dmg = this.getStat('force');
-                let sz = this.getStat('portee');
 
-                if(now - this.timers.kunai > (800 - (this.weapons.kunai*40)) * cd) {
-                    for(let i=0; i<1+qte; i++) {
-                        let t = getNearestEnemy(this.x, this.y, 500);
-                        if(t) bullets.push(new Projectile(this.x, this.y, Math.atan2(t.y-this.y, t.x-this.x)+(i*0.1), 10, 20*dmg, "#f1c40f", 5*sz));
+                // ARME: GUN (FUSIL) - Modifié pour ressembler à des balles
+                if(this.weapons.gun && now - this.timers.gun > 500 * cd) {
+                    let c = 1 + qte; // Nombre de balles
+                    for(let i=0; i<c; i++) {
+                        let t = getNearestEnemy(this.x, this.y, 600);
+                        let ang = t ? Math.atan2(t.y-this.y, t.x-this.x) : Math.random()*6.28;
+                        ang += (i - c/2) * 0.15; // Dispersion légère
+                        // On crée un projectile de type "bullet"
+                        bullets.push(new Projectile(this.x, this.y, ang, 15, 20*dmg, "#f1c40f", 3, "bullet"));
                     }
-                    this.timers.kunai = now;
+                    this.timers.gun = now;
                 }
-                if(this.weapons.thunder && now - this.timers.thunder > 2200 * cd) {
-                    for(let i=0; i<this.weapons.thunder+qte; i++) {
-                        let t = getRandomEnemyNearby(this.x, this.y, 400);
-                        if(t) { strikes.push(new Lightning(t.x, t.y)); t.takeDamage(30 * dmg); }
+
+                if(this.weapons.boomerang && now - this.timers.boomerang > 2000 * cd) {
+                    for(let i=0; i<1+qte; i++) bullets.push(new Boomerang(this.x, this.y, (6.28/(1+qte))*i, dmg));
+                    this.timers.boomerang = now;
+                }
+                if(this.weapons.thunder && now - this.timers.thunder > 1500 * cd) {
+                    for(let i=0; i<1+qte; i++) {
+                        let t = getRandomEnemyNearby(this.x, this.y, 500);
+                        if(t) { strikes.push(new Lightning(t.x, t.y)); t.takeDamage(50*dmg); }
                     }
                     this.timers.thunder = now;
                 }
-                if(this.weapons.boomerang && now - this.timers.boomerang > 2500 * cd) {
-                    for(let i=0; i<1+qte; i++) bullets.push(new Boomerang(this.x, this.y, (Math.PI*2/(1+qte))*i, sz, dmg));
-                    this.timers.boomerang = now;
-                }
             }
             draw() {
-                let sz = this.getStat('portee'), dmg = this.getStat('force');
                 if(this.weapons.guardian) {
-                    let c = this.weapons.guardian + 1 + this.getStat('quantite');
+                    let c = 1 + this.getStat('quantite') + this.weapons.guardian;
+                    let dmg = this.getStat('force');
                     for(let i=0; i<c; i++) {
-                        let a = this.rot + (i*Math.PI*2/c);
-                        let lx = this.x + Math.cos(a)*100; let ly = this.y + Math.sin(a)*100;
-                        ctx.fillStyle = "#ced6e0"; ctx.beginPath(); ctx.arc(lx, ly, 12*sz, 0, Math.PI*2); ctx.fill();
-                        enemies.forEach(e => { if(Math.hypot(e.x-lx, e.y-ly) < 25*sz) e.takeDamage(4*dmg); });
+                        let a = this.rot + (i*6.28/c);
+                        let lx = this.x + Math.cos(a)*120; let ly = this.y + Math.sin(a)*120;
+                        ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(lx, ly, 15, 0, 6.28); ctx.fill();
+                        enemies.forEach(e => { if(Math.hypot(e.x-lx, e.y-ly) < 30) e.takeDamage(2*dmg); });
                     }
                 }
-                ctx.save(); ctx.translate(this.x, this.y);
-                ctx.fillStyle = "#2ed573"; ctx.fillRect(-10, -10, 20, 25);
-                ctx.fillStyle = "#ffdbac"; ctx.beginPath(); ctx.arc(0, -15, 12, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(-4, -15, 2, 0, Math.PI*2); ctx.fill(); ctx.arc(4, -15, 2, 0, Math.PI*2); ctx.fill();
-                ctx.restore();
+                if(Date.now() < this.magnetTimer) { ctx.strokeStyle = "#8e44ad"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, 40, 0, 6.28); ctx.stroke(); }
+                if(Date.now() < this.speedBoostTimer) { ctx.strokeStyle = "#00f2fe"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, 35, 0, 6.28); ctx.stroke(); }
+                
+                ctx.shadowBlur = 20; ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, 20, 0, 6.28); ctx.fill();
+                ctx.shadowBlur = 0;
             }
         }
 
         class Enemy {
-            constructor(wave) {
-                let side = Math.floor(Math.random()*4);
-                if(side==0){this.x=Math.random()*W; this.y=-30} else if(side==1){this.x=W+30; this.y=Math.random()*H}
-                else if(side==2){this.x=Math.random()*W; this.y=H+30} else {this.x=-30; this.y=Math.random()*H}
-                this.hp = 20 + (wave * 45); this.speed = 1.3 + (wave * 0.4); this.r = 16;
-                this.hit = 0; this.color = ["#7bed9f", "#eccc68", "#ffa502", "#ff4757", "#57606f"][Math.min(wave, 4)];
+            constructor(wave, type='normal') {
+                let angle = Math.random() * 6.28;
+                let dist = (W/2 + 200) / camera.zoom;
+                this.x = player.x + Math.cos(angle) * dist;
+                this.y = player.y + Math.sin(angle) * dist;
+                this.type = type;
+                this.hp = 20 + (wave * 15);
+                this.speed = 1.5 + (wave * 0.1);
+                this.r = 16;
+                this.color = "#bdc3c7";
+
+                if(type === 'boss') {
+                    this.hp *= 20; this.r = 60; this.speed *= 0.8; this.color = "#8e44ad";
+                } else if(type.startsWith('special')) {
+                    this.r = 32; 
+                    this.hp *= 2; 
+                    if(type === 'special_green') this.color = "#2ecc71";
+                    if(type === 'special_red') this.color = "#e74c3c";
+                    if(type === 'special_yellow') this.color = "#f1c40f";
+                }
+                this.maxHp = this.hp; this.hit = 0;
             }
             takeDamage(amt) {
                 this.hp -= amt; this.hit = 5;
+                numbers.push(new DmgNum(this.x, this.y, Math.floor(amt)));
                 if(this.hp <= 0) {
-                    for(let i=0; i<6; i++) particles.push(new Particle(this.x, this.y, this.color));
-                    gems.push(new Gem(this.x, this.y));
+                    if(this.type === 'special_green') gems.push(new Gem(this.x, this.y, 50, 'xp'));
+                    else if(this.type === 'special_red') gems.push(new Gem(this.x, this.y, 30, 'hp'));
+                    else if(this.type === 'special_yellow') gems.push(new Gem(this.x, this.y, 50, 'coin'));
+                    else if(this.type === 'boss') { gems.push(new Gem(this.x, this.y, 500, 'xp')); gems.push(new Gem(this.x+20, this.y, 100, 'coin')); }
+                    else gems.push(new Gem(this.x, this.y, 10, 'xp'));
+                    for(let i=0;i<5;i++) particles.push(new Part(this.x, this.y, this.color));
                 }
             }
-            update() {
+            update(isRedAlert) {
+                let spd = this.speed * (isRedAlert ? 2 : 1);
                 let a = Math.atan2(player.y-this.y, player.x-this.x);
-                this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
+                this.x += Math.cos(a)*spd; this.y += Math.sin(a)*spd;
                 if(this.hit > 0) this.hit--;
-                if(Math.hypot(this.x-player.x, this.y-player.y) < 25) player.hp -= 0.6;
+                if(Math.hypot(this.x-player.x, this.y-player.y) < this.r + 20) { player.hp -= 0.5; camera.shake = 5; }
             }
             draw() {
                 ctx.fillStyle = this.hit > 0 ? "white" : this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = "black"; ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, 6.28); ctx.fill();
+                if(this.type === 'boss') {
+                    ctx.fillStyle = "red"; ctx.fillRect(this.x-30, this.y-70, 60, 6);
+                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(this.x-30, this.y-70, 60*(this.hp/this.maxHp), 6);
+                }
             }
         }
 
-        class Boomerang {
-            constructor(x, y, ang, szM, dmgM) {
-                this.x=x; this.y=y; this.ang=ang; this.dist=0; this.ret=false; this.act=true; this.r=0; this.dmg=18*dmgM; this.sz=18*szM;
-            }
+        class Boost {
+            constructor(x, y, type) { this.x=x; this.y=y; this.type=type; }
             update() {
-                this.r += 0.4;
-                if(!this.ret) {
-                    this.x += Math.cos(this.ang)*8; this.y += Math.sin(this.ang)*8;
-                    this.dist += 8; if(this.dist > 350) this.ret = true;
-                } else {
-                    let a = Math.atan2(player.y-this.y, player.x-this.x);
-                    this.x += Math.cos(a)*10; this.y += Math.sin(a)*10;
-                    if(Math.hypot(this.x-player.x, this.y-player.y) < 20) this.act = false;
+                if(Math.hypot(this.x-player.x, this.y-player.y) < 50) {
+                    if(this.type === 'speed') player.speedBoostTimer = Date.now() + 10000;
+                    if(this.type === 'magnet') player.magnetTimer = Date.now() + 10000;
+                    numbers.push(new DmgNum(player.x, player.y-50, this.type === 'speed' ? "VITESSE!" : "AIMANT!", "#fff"));
+                    return false; 
                 }
-                enemies.forEach(e => { if(Math.hypot(e.x-this.x, e.y-this.y) < e.r + this.sz) e.takeDamage(this.dmg); });
+                return true;
             }
             draw() {
-                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.r);
-                ctx.fillStyle="#54a0ff"; ctx.beginPath(); ctx.moveTo(0,-this.sz); ctx.lineTo(this.sz,this.sz); ctx.lineTo(-this.sz,this.sz); ctx.fill();
-                ctx.restore();
+                ctx.font = "30px Arial"; ctx.textAlign = "center"; ctx.textBaseline="middle";
+                if(this.type === 'speed') { ctx.fillStyle="#00f2fe"; ctx.fillText(">>", this.x, this.y); }
+                else { ctx.fillStyle="#e74c3c"; ctx.fillText("🧲", this.x, this.y); }
             }
         }
 
-        class Projectile {
-            constructor(x,y,a,s,d,c,r) { this.x=x; this.y=y; this.vx=Math.cos(a)*s; this.vy=Math.sin(a)*s; this.dmg=d; this.col=c; this.r=r; this.act=true; }
-            update() { 
-                this.x+=this.vx; this.y+=this.vy; 
-                if(this.x<0||this.x>W||this.y<0||this.y>H) this.act=false; 
-                enemies.forEach(e => { if(Math.hypot(e.x-this.x, e.y-this.y) < e.r+this.r){ e.takeDamage(this.dmg); this.act=false; }}); 
+        class Gem {
+            constructor(x,y,val,type) { this.x=x;this.y=y;this.v=val;this.t=type; }
+            update() {
+                let d = Math.hypot(this.x-player.x, this.y-player.y);
+                let magnetActive = Date.now() < player.magnetTimer;
+                if(d < 150 || magnetActive) { 
+                    let speed = magnetActive ? 25 : 15;
+                    let a=Math.atan2(player.y-this.y,player.x-this.x); 
+                    this.x+=Math.cos(a)*speed; this.y+=Math.sin(a)*speed; 
+                }
+                if(d < 30) {
+                    if(this.t==='xp') player.xp += this.v;
+                    if(this.t==='hp') player.hp = Math.min(player.maxHp, player.hp + this.v);
+                    if(this.t==='coin') sessionCoins += this.v;
+                    return true;
+                }
+                return false;
             }
-            draw() { ctx.fillStyle=this.col; ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill(); }
+            draw() { 
+                ctx.fillStyle = this.t==='xp'?"#00f2fe":this.t==='hp'?"#ff4757":"#f1c40f";
+                ctx.beginPath(); ctx.arc(this.x,this.y,6,0,6.28); ctx.fill(); 
+            }
         }
 
-        class Lightning { constructor(x,y) { this.x=x; this.y=y; this.life=10; } draw() { ctx.strokeStyle="white"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(this.x,-50); ctx.lineTo(this.x+20,this.y/2); ctx.lineTo(this.x,this.y); ctx.stroke(); this.life--; } }
-        class Particle { constructor(x,y,c) { this.x=x; this.y=y; this.c=c; this.l=15; this.vx=(Math.random()-0.5)*6; this.vy=(Math.random()-0.5)*6; } draw() { ctx.fillStyle=this.c; ctx.globalAlpha=this.l/15; ctx.fillRect(this.x,this.y,4,4); ctx.globalAlpha=1; this.x+=this.vx; this.y+=this.vy; this.l--; } }
-        class Gem { constructor(x,y) { this.x=x; this.y=y; } update() { let d=Math.hypot(this.x-player.x, this.y-player.y); if(d<150) { let a=Math.atan2(player.y-this.y, player.x-this.x); this.x+=Math.cos(a)*12; this.y+=Math.sin(a)*12; } if(d<20) { player.xp += 20 * player.getStat('sagesse'); updateUI(); return true; } return false; } draw() { ctx.fillStyle="#7bed9f"; ctx.fillRect(this.x-4,this.y-4,8,8); } }
+        class Projectile { 
+            constructor(x,y,a,s,d,c,r,type='normal'){
+                this.x=x;this.y=y;this.vx=Math.cos(a)*s;this.vy=Math.sin(a)*s;
+                this.d=d;this.c=c;this.r=r;this.act=true;this.type=type;
+            } 
+            update(){
+                this.x+=this.vx;this.y+=this.vy;
+                if(Math.hypot(this.x-player.x,this.y-player.y)>1000)this.act=false;
+                enemies.forEach(e=>{
+                    if(Math.hypot(e.x-this.x,e.y-this.y)<e.r+this.r){e.takeDamage(this.d);this.act=false;}
+                });
+            } 
+            draw(){
+                ctx.fillStyle=this.c;
+                if(this.type === 'bullet') {
+                    // Dessin d'un trait (balle)
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(Math.atan2(this.vy, this.vx));
+                    ctx.fillRect(-10, -2, 20, 4); // Longueur 20, epaisseur 4
+                    ctx.restore();
+                } else {
+                    ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,6.28);ctx.fill();
+                }
+            } 
+        }
 
-        function getNearestEnemy(x,y,max) { let n=null, m=max; enemies.forEach(e=>{let d=Math.hypot(e.x-x,e.y-y); if(d<m){m=d;n=e;}}); return n; }
-        function getRandomEnemyNearby(x,y,r) { let t=enemies.filter(e=>Math.hypot(e.x-x,e.y-y)<r); return t[Math.floor(Math.random()*t.length)]; }
+        class Boomerang { constructor(x,y,a,d){this.x=x;this.y=y;this.a=a;this.d=d;this.dist=0;this.ret=false;this.act=true;this.rot=0;} update(){this.rot+=0.5;if(!this.ret){this.x+=Math.cos(this.a)*10;this.y+=Math.sin(this.a)*10;this.dist+=10;if(this.dist>400)this.ret=true;}else{let ang=Math.atan2(player.y-this.y,player.x-this.x);this.x+=Math.cos(ang)*12;this.y+=Math.sin(ang)*12;if(Math.hypot(this.x-player.x,this.y-player.y)<20)this.act=false;}enemies.forEach(e=>{if(Math.hypot(e.x-this.x,e.y-this.y)<e.r+20)e.takeDamage(this.d);});} draw(){ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rot);ctx.fillStyle="#e74c3c";ctx.fillRect(-5,-20,10,40);ctx.restore();} }
+        class Lightning { constructor(x,y){this.x=x;this.y=y;this.l=10;} draw(){ctx.strokeStyle="#f1c40f";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(this.x,this.y-300);ctx.lineTo(this.x,this.y);ctx.stroke();this.l--;} }
+        class Part { constructor(x,y,c){this.x=x;this.y=y;this.c=c;this.l=20;this.vx=(Math.random()-.5)*10;this.vy=(Math.random()-.5)*10;} update(){this.x+=this.vx;this.y+=this.vy;this.l--;} draw(){ctx.fillStyle=this.c;ctx.globalAlpha=this.l/20;ctx.fillRect(this.x,this.y,4,4);ctx.globalAlpha=1;} }
+        class DmgNum { constructor(x,y,v,c="white"){this.x=x;this.y=y;this.v=v;this.c=c;this.l=30;} update(){this.y-=1;this.l--; return this.l>0;} draw(){ctx.fillStyle=this.c;ctx.font="12px Arial";ctx.fillText(this.v,this.x,this.y);} }
 
-        function showTip(e, id) {
-            let tip = document.getElementById('tooltip');
-            let type = id.startsWith('w') ? 'weapon' : 'passive';
-            let slotIdx = parseInt(id[1]);
-            let currentItems = type === 'weapon' ? Object.keys(player.weapons) : Object.keys(player.passives);
-            let key = currentItems[slotIdx];
+        function getNearestEnemy(x,y,r) { let c=null,min=r; enemies.forEach(e=>{let d=Math.hypot(e.x-x,e.y-y);if(d<min){min=d;c=e;}}); return c;}
+        function getRandomEnemyNearby(x,y,r) { let l=enemies.filter(e=>Math.hypot(e.x-x,e.y-y)<r); return l.length?l[Math.floor(Math.random()*l.length)]:null; }
+
+        // --- GAME LOOP ---
+        function startGame() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('ui').classList.remove('hidden');
+            try { document.getElementById('bgm').play(); } catch(e){}
             
-            if(key) {
-                let data = type === 'weapon' ? WEAPONS_DATA[key] : PASSIVES_DATA[key];
-                let lvl = type === 'weapon' ? player.weapons[key] : player.passives[key];
-                tip.innerHTML = `<strong style="color:${data.col}">${data.t}</strong> (Niv. ${lvl})<br><br><span style="color:#ddd">${data.d}</span>`;
-                tip.style.display = 'block';
-                tip.style.left = (e.pageX + 15) + 'px';
-                tip.style.top = (e.pageY + 15) + 'px';
-            }
-        }
-        function hideTip() { document.getElementById('tooltip').style.display = 'none'; }
-
-        function updateUI() {
-            document.getElementById('hp-fill').style.width = (player.hp/player.maxHp)*100 + "%";
-            document.getElementById('xp-fill').style.width = (player.xp/player.xpReq)*100 + "%";
-            document.getElementById('lvl').innerText = "NIVEAU " + player.lvl;
+            // Re-vérif du char sélectionné
+            selectedCharId = parseInt(localStorage.getItem('survivor_selected')) || 0;
+            const charData = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
             
-            const wKeys = Object.keys(player.weapons);
-            const pKeys = Object.keys(player.passives);
-            for(let i=0; i<4; i++) {
-                let ws = document.getElementById('weapon-slots').children[i];
-                if(wKeys[i]) { ws.innerText = WEAPONS_DATA[wKeys[i]].sym; ws.style.background = WEAPONS_DATA[wKeys[i]].col; ws.style.color = "#000"; }
-                let ps = document.getElementById('passive-slots').children[i];
-                if(pKeys[i]) { ps.innerText = PASSIVES_DATA[pKeys[i]].sym; ps.style.background = PASSIVES_DATA[pKeys[i]].col; ps.style.color = "#000"; }
-            }
-
-            if(player.xp >= player.xpReq) levelUp();
-            if(player.hp <= 0) { gameActive = false; alert("FIN DE LA SURVIE !"); location.reload(); }
-        }
-
-        function levelUp() {
-            player.lvl++; player.xp = 0; player.xpReq += 50; gameActive = false;
-            let pool = [];
-            Object.keys(WEAPONS_DATA).forEach(k => { if(player.weapons[k] || Object.keys(player.weapons).length < 4) pool.push({id:k, ...WEAPONS_DATA[k], type:'weapon'}); });
-            Object.keys(PASSIVES_DATA).forEach(k => { if(player.passives[k] || Object.keys(player.passives).length < 4) pool.push({id:k, ...PASSIVES_DATA[k], type:'passive'}); });
-
-            let html = "", choices = [];
-            while(choices.length < 3 && pool.length > 0) choices.push(pool.splice(Math.floor(Math.random()*pool.length), 1)[0]);
-
-            choices.forEach(s => {
-                let curLvl = (s.type === 'weapon' ? player.weapons[s.id] : player.passives[s.id]) || 0;
-                html += `<div class="card" onclick="upgrade('${s.id}', '${s.type}')"><b style="color:${s.col}">${s.t}</b><br><small>Niveau ${curLvl+1}</small><br><br><span style="font-size:11px">${s.d}</span></div>`;
-            });
-            document.getElementById('choices').innerHTML = html;
-            document.getElementById('modal').style.display = "flex";
-        }
-
-        function upgrade(id, type) {
-            if(type === 'weapon') player.weapons[id] = (player.weapons[id] || 0) + 1;
-            else player.passives[id] = (player.passives[id] || 0) + 1;
-            document.getElementById('modal').style.display = "none";
-            gameActive = true; updateUI(); loop();
-        }
-
-        function initGame() {
-            player = new Player(); enemies = []; gems = []; bullets = []; strikes = []; particles = [];
-            gameActive = true; startTime = Date.now();
-            document.getElementById('start').style.display = "none";
-            updateUI(); loop();
+            player = new Player(charData);
+            enemies = []; gems = []; bullets = []; strikes = []; particles = []; numbers = []; boosts = [];
+            gameActive = true; startTime = Date.now(); sessionCoins = 0; bossSpawnedStages = []; camera.zoom = 1;
+            loop();
         }
 
         function loop() {
             if(!gameActive) return;
-            ctx.clearRect(0, 0, W, H);
             elapsedTime = (Date.now() - startTime) / 1000;
-            
             let rem = 600 - elapsedTime;
-            let timerEl = document.getElementById('timer');
-            if(rem > 0) {
-                timerEl.innerText = Math.floor(rem/60).toString().padStart(2,'0') + ":" + Math.floor(rem%60).toString().padStart(2,'0');
-            } else {
-                timerEl.innerText = "+" + Math.floor(Math.abs(rem)/60).toString().padStart(2,'0') + ":" + Math.floor(Math.abs(rem)%60).toString().padStart(2,'0');
-                timerEl.classList.add('flame-timer');
+            let isRedAlert = rem <= 0;
+
+            let tEl = document.getElementById('timer');
+            if(rem > 0) tEl.innerText = `${Math.floor(rem/60).toString().padStart(2,'0')}:${Math.floor(rem%60).toString().padStart(2,'0')}`;
+            else { tEl.innerText = "DANGER"; tEl.classList.add('red-alert'); if(Date.now()-lastCoinTick>1000){sessionCoins++;lastCoinTick=Date.now();} }
+
+            document.getElementById('live-coins-display').innerText = playerCoins + sessionCoins;
+            updateSlots();
+
+            if((elapsedTime > 240 && !bossSpawnedStages.includes(1)) || (elapsedTime > 480 && !bossSpawnedStages.includes(2))) {
+                enemies.push(new Enemy(0, 'boss')); bossSpawnedStages.push(elapsedTime > 400 ? 2 : 1);
+                let w = document.getElementById('boss-warning'); w.style.display='block'; setTimeout(()=>w.style.display='none', 3000);
+            }
+            
+            let rate = isRedAlert ? 100 : Math.max(100, 1000 - (Math.floor(elapsedTime/60)*100));
+            if(Date.now() - lastSpawn > rate) {
+                let r = Math.random();
+                let type = 'normal';
+                if(r<0.01) type='special_green'; else if(r<0.02) type='special_red'; else if(r<0.03) type='special_yellow';
+                enemies.push(new Enemy(Math.floor(elapsedTime/60), type));
+                lastSpawn = Date.now();
             }
 
-            let wave = Math.floor(elapsedTime / 120);
-            let spawnRate = Math.max(80, 850 - (wave * 150));
-            if(rem <= 0) spawnRate /= 2; // SPAWN DOUBLE après 10 min
+            // Spawn Boosts (0.2% chance par frame)
+            if(Math.random() < 0.002) { 
+                let angle = Math.random() * 6.28;
+                let dist = (W/2 + 50) / camera.zoom;
+                let bx = player.x + Math.cos(angle) * dist;
+                let by = player.y + Math.sin(angle) * dist;
+                boosts.push(new Boost(bx, by, Math.random()>0.5 ? 'speed':'magnet'));
+            }
 
-            if(Date.now() - lastSpawn > spawnRate) { enemies.push(new Enemy(wave)); lastSpawn = Date.now(); }
+            ctx.fillStyle = "#050505"; ctx.fillRect(0,0,W,H);
+            if(camera.shake>0) camera.shake *=0.9;
+            ctx.save();
+            ctx.translate(W/2, H/2); ctx.scale(camera.zoom, camera.zoom); ctx.translate(-W/2, -H/2);
+            let cx = player.x - W/2 + (Math.random()-0.5)*camera.shake;
+            let cy = player.y - H/2 + (Math.random()-0.5)*camera.shake;
+            ctx.translate(-cx, -cy);
+
+            // Grille
+            ctx.strokeStyle = "#111"; ctx.lineWidth=2;
+            let gs = 100;
+            let sx = Math.floor((player.x-(W/camera.zoom))/gs)*gs, ex = Math.floor((player.x+(W/camera.zoom))/gs)*gs;
+            let sy = Math.floor((player.y-(H/camera.zoom))/gs)*gs, ey = Math.floor((player.y+(H/camera.zoom))/gs)*gs;
+            for(let x=sx; x<=ex; x+=gs) { ctx.beginPath(); ctx.moveTo(x, player.y-(H/camera.zoom)); ctx.lineTo(x, player.y+(H/camera.zoom)); ctx.stroke(); }
+            for(let y=sy; y<=ey; y+=gs) { ctx.beginPath(); ctx.moveTo(player.x-(W/camera.zoom), y); ctx.lineTo(player.x+(W/camera.zoom), y); ctx.stroke(); }
 
             player.update(); player.draw();
-            enemies = enemies.filter(e => { e.update(); e.draw(); return e.hp > 0; });
+            enemies = enemies.filter(e => { e.update(isRedAlert); e.draw(); return e.hp>0; });
             bullets = bullets.filter(b => { b.update(); b.draw(); return b.act; });
-            gems = gems.filter(g => !g.update()); gems.forEach(g => g.draw());
-            strikes = strikes.filter(s => { s.draw(); return s.life > 0; });
-            particles = particles.filter(p => { p.draw(); return p.l > 0; });
+            gems = gems.filter(g => !g.update()); gems.forEach(g=>g.draw());
+            boosts = boosts.filter(b => b.update()); boosts.forEach(b=>b.draw());
+            strikes = strikes.filter(s => { s.draw(); return s.l>0; });
+            particles = particles.filter(p => { p.update(); p.draw(); return p.l>0; });
+            numbers = numbers.filter(n => { n.draw(); return n.update(); });
+
+            document.getElementById('hp-fill').style.width = (player.hp/player.maxHp)*100 + "%";
+            document.getElementById('xp-fill').style.width = (player.xp/player.xpReq)*100 + "%";
+            if(player.xp >= player.xpReq) levelUp();
+            if(player.hp <= 0) gameOver();
+
+            ctx.restore();
             requestAnimationFrame(loop);
         }
 
-        window.onkeydown = e => keys[e.key.toLowerCase()] = true;
-        window.onkeyup = e => keys[e.key.toLowerCase()] = false;
+        function updateSlots() {
+            const wKeys = Object.keys(player.weapons);
+            const wSlots = document.getElementById('weapon-slots').children;
+            for(let i=0; i<4; i++) {
+                if(wKeys[i]) {
+                    let d = WEAPONS_DATA[wKeys[i]];
+                    wSlots[i].innerHTML = `${d.icon}<small>LV.${player.weapons[wKeys[i]]}</small>`;
+                    wSlots[i].style.borderColor = d.col;
+                } else wSlots[i].innerHTML = "";
+            }
+            const pKeys = Object.keys(player.passives);
+            const pSlots = document.getElementById('passive-slots').children;
+            for(let i=0; i<4; i++) {
+                if(pKeys[i]) {
+                    let d = PASSIVES_DATA[pKeys[i]];
+                    pSlots[i].innerHTML = `${d.icon}<small>LV.${player.passives[pKeys[i]]}</small>`;
+                    pSlots[i].style.borderColor = d.col;
+                } else pSlots[i].innerHTML = "";
+            }
+        }
+
+        function levelUp() {
+            gameActive = false;
+            player.lvl++; player.xp = 0; player.xpReq = Math.floor(player.xpReq * 1.2);
+            document.getElementById('lvl').innerText = "NIVEAU " + player.lvl;
+            
+            let pool = [];
+            if(Object.keys(player.weapons).length < 4) Object.keys(WEAPONS_DATA).forEach(k=>pool.push({...WEAPONS_DATA[k],id:k,type:'weapon'}));
+            else Object.keys(player.weapons).forEach(k=>pool.push({...WEAPONS_DATA[k],id:k,type:'weapon'}));
+            
+            if(Object.keys(player.passives).length < 4) Object.keys(PASSIVES_DATA).forEach(k=>pool.push({...PASSIVES_DATA[k],id:k,type:'passive'}));
+            else Object.keys(player.passives).forEach(k=>pool.push({...PASSIVES_DATA[k],id:k,type:'passive'}));
+
+            // CORRECTION: Si le pool est vide (tout maxé), on ajoute des bonus consommables
+            if(pool.length === 0) {
+                pool.push({id:'heal', t:'SOIN', d:'Restaure 50 HP', col:'#ff4757', icon:'❤️', type:'consumable'});
+                pool.push({id:'gold', t:'TRESOR', d:'+500 Or', col:'#f1c40f', icon:'💰', type:'consumable'});
+            }
+
+            let choices = [];
+            for(let i=0; i<3; i++) {
+                if(pool.length) choices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+            }
+
+            let html = "";
+            choices.forEach(c => {
+                let curr = 0;
+                if(c.type === 'weapon') curr = player.weapons[c.id] || 0;
+                if(c.type === 'passive') curr = player.passives[c.id] || 0;
+                
+                let lvlTxt = c.type === 'consumable' ? "BONUS INSTANTANÉ" : `Niveau ${curr} -> ${curr+1}`;
+                
+                html += `<div class="card" onclick="applyUpgrade('${c.id}', '${c.type}')">
+                            <h3 style="color:${c.col}">${c.t}</h3>
+                            <div style="font-size:30px">${c.icon}</div>
+                            <p>${c.d}</p>
+                            <small>${lvlTxt}</small>
+                         </div>`;
+            });
+            document.getElementById('upgrade-choices').innerHTML = html;
+            document.getElementById('modal-upgrade').style.display = 'flex';
+        }
+
+        function applyUpgrade(id, type) {
+            if(type === 'consumable') {
+                if(id === 'heal') player.hp = Math.min(player.maxHp, player.hp + 50);
+                if(id === 'gold') sessionCoins += 500;
+            } else if(type === 'weapon') {
+                player.weapons[id] = (player.weapons[id]||0) + 1;
+            } else {
+                player.passives[id] = (player.passives[id]||0) + 1;
+            }
+            document.getElementById('modal-upgrade').style.display = 'none';
+            gameActive = true; loop();
+        }
+
+        function gameOver() {
+            gameActive = false;
+            document.getElementById('ui').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            let m = Math.floor(elapsedTime/60);
+            let timeMoney = m<1?5:m<10?10*m:100+Math.floor(elapsedTime-600);
+            let total = timeMoney + sessionCoins;
+            playerCoins += total;
+            localStorage.setItem('survivor_coins', playerCoins);
+            
+            document.getElementById('end-time').innerText = `${m}m ${Math.floor(elapsedTime%60)}s`;
+            document.getElementById('survival-coins').innerText = timeMoney;
+            document.getElementById('loot-coins').innerText = sessionCoins;
+            document.getElementById('total-gained').innerText = total;
+        }
+
+        window.addEventListener('keydown', e=>{let k=e.key.toLowerCase(); if(k===keyMap.up)activeKeys.up=true; if(k===keyMap.down)activeKeys.down=true; if(k===keyMap.left)activeKeys.left=true; if(k===keyMap.right)activeKeys.right=true;});
+        window.addEventListener('keyup', e=>{let k=e.key.toLowerCase(); if(k===keyMap.up)activeKeys.up=false; if(k===keyMap.down)activeKeys.down=false; if(k===keyMap.left)activeKeys.left=false; if(k===keyMap.right)activeKeys.right=false;});
+        window.addEventListener('wheel', e=>{if(gameActive) camera.zoom = e.deltaY>0 ? Math.max(0.5,camera.zoom-0.1) : Math.min(1.5,camera.zoom+0.1);});
         window.onresize = () => { W=window.innerWidth; H=window.innerHeight; canvas.width=W; canvas.height=H; };
     </script>
 </body>
